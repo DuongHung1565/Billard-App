@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  CUSTOMER
+  CASHIER
+  ADMIN
+}
+enum BookingStatus {
+  PENDING
+  CHECKED_IN
+  CANCELLED
+  EXPIRED
+}
+enum SessionStatus {
+  OPEN
+  STOPPED
+  PAID
+  CANCELLED
+}
+model User {
+  id           String @id @default(cuid())
+  name         String
+  phone        String @unique
+  email        String? @unique
+  passwordHash String
+  birthDate    String?
+  role         Role @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+  bookings     Booking[]
+  sessions     Session[]
+}
+model Table {
+  id       String @id @default(cuid())
+  name     String @unique
+  kind     String @default("Pool 9 bi")
+  zone     String @default("Tầng 1")
+  bookings Booking[]
+  sessions Session[]
+}
+model Booking {
+  id         String @id @default(cuid())
+  userId     String
+  tableId    String
+  startsAt   DateTime
+  endsAt     DateTime
+  status     BookingStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  user       User @relation(fields: [userId], references: [id])
+  table      Table @relation(fields: [tableId], references: [id])
+  session    Session?
+  @@index([tableId, status, startsAt])
+}
+model Session {
+  id           String @id @default(cuid())
+  tableId      String
+  userId       String?
+  bookingId    String? @unique
+  startedAt    DateTime @default(now())
+  stoppedAt    DateTime?
+  status       SessionStatus @default(OPEN)
+  rates        Json
+  birthday     Boolean @default(false)
+  table        Table @relation(fields: [tableId], references: [id])
+  user         User? @relation(fields: [userId], references: [id])
+  booking      Booking? @relation(fields: [bookingId], references: [id])
+  items        SessionItem[]
+  invoice      Invoice?
+}
+model Product {
+  id     String @id @default(cuid())
+  name   String @unique
+  price  Int
+  active Boolean @default(true)
+  items  SessionItem[]
+}
+model SessionItem {
+  id        String @id @default(cuid())
+  sessionId String
+  productId String
+  name      String
+  price     Int
+  quantity  Int
+  session   Session @relation(fields: [sessionId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+  @@unique([sessionId, productId])
+}
+model PriceConfig {
+  id        Int @id @default(1)
+  rates     Json
+  updatedAt DateTime @updatedAt
+}
+model Voucher {
+  id           String @id @default(cuid())
+  code         String @unique
+  percent      Int
+  maxDiscount  Int
+  minOrder     Int
+  startsOn     String
+  endsOn       String
+  usageLimit   Int
+  usedCount    Int @default(0)
+  invoices     Invoice[]
+}
+model Invoice {
+  id          String @id @default(cuid())
+  sessionId   String @unique
+  voucherId   String?
+  breakdown   Json
+  play        Int
+  services    Int
+  discount    Int
+  total       Int
+  tendered    Int
+  change      Int
+  method      String
+  paidAt      DateTime @default(now())
+  cashierId   String
+  session     Session @relation(fields: [sessionId], references: [id])
+  voucher     Voucher? @relation(fields: [voucherId], references: [id])
+  @@index([paidAt])
+}

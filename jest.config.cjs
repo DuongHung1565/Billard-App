@@ -1,0 +1,1 @@
+module.exports = { testEnvironment: 'node', testMatch: ['**/tests/unit/**/*.test.ts'], collectCoverageFrom: ['lib/billing.ts'], coverageThreshold: { global: { branches: 100, functions: 100, lines: 100, statements: 100 } }, transform: { '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.server.json' }] } };
